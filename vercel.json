@@ -1,0 +1,32 @@
+{
+  "version": 2,
+  "functions": {
+    "api/upload-audio.js": {
+      "maxDuration": 60
+    },
+    "api/deploy-player.js": {
+      "maxDuration": 10
+    },
+    "api/player.js": {
+      "maxDuration": 10
+    }
+  },
+  "headers": [
+    {
+      "source": "/api/player",
+      "headers": [
+        { "key": "X-Frame-Options",       "value": "ALLOWALL" },
+        { "key": "Content-Security-Policy","value": "frame-ancestors *" },
+        { "key": "Access-Control-Allow-Origin", "value": "*" }
+      ]
+    },
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin",  "value": "*" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET, POST, OPTIONS" },
+        { "key": "Access-Control-Allow-Headers", "value": "Content-Type" }
+      ]
+    }
+  ]
+}

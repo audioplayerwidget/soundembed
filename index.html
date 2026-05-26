@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SoundEmbed — Audio Widget Generator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0c0c0e;
+      --surface:  #141417;
+      --surface2: #1c1c20;
+      --border:   #28282e;
+      --accent:   #7c6aff;
+      --accentlt: #a594ff;
+      --green:    #22c55e;
+      --text:     #f2f2f4;
+      --muted:    #6b6b78;
+      --radius:   10px;
+    }
+
+    html, body {
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Layout ── */
+    .page { max-width: 660px; margin: 0 auto; padding: 44px 20px 80px; }
+
+    /* ── Header ── */
+    .header { display: flex; align-items: center; gap: 11px; margin-bottom: 44px; }
+    .logo-icon {
+      width: 34px; height: 34px;
+      background: linear-gradient(135deg, var(--accent), #c084fc);
+      border-radius: 9px; display: grid; place-items: center; flex-shrink: 0;
+    }
+    .logo-name { font-size: 17px; font-weight: 800; letter-spacing: -.4px; }
+    .logo-name span { color: var(--accentlt); }
+
+    /* ── Hero ── */
+    .hero { margin-bottom: 32px; }
+    .hero h1 {
+      font-size: clamp(24px, 5vw, 38px);
+      font-weight: 800; letter-spacing: -1.4px;
+      line-height: 1.1; margin-bottom: 10px;
+    }
+    .hero h1 em { font-style: normal; color: var(--accentlt); }
+    .hero p { font-size: 14px; color: var(--muted); line-height: 1.7; }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px; padding: 22px; margin-bottom: 12px;
+    }
+    .card-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 1.6px;
+      text-transform: uppercase; color: var(--muted);
+      margin-bottom: 16px; font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* ── Upload zone ── */
+    .drop {
+      border: 2px dashed var(--border); border-radius: 10px;
+      padding: 34px 20px; text-align: center; cursor: pointer;
+      transition: all .2s; position: relative; background: var(--surface2);
+    }
+    .drop:hover, .drop.over {
+      border-color: var(--accent);
+      background: rgba(124,106,255,.05);
+    }
+    .drop input {
+      position: absolute; inset: 0; opacity: 0;
+      cursor: pointer; width: 100%; height: 100%;
+    }
+    .drop-icon { font-size: 30px; margin-bottom: 9px; display: block; }
+    .drop h3 { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+    .drop p  { font-size: 12px; color: var(--muted); }
+
+    .file-badge {
+      display: none; align-items: center; gap: 9px;
+      background: rgba(34,197,94,.08);
+      border: 1px solid rgba(34,197,94,.22);
+      border-radius: 8px; padding: 10px 13px; margin-top: 11px;
+    }
+    .file-badge.show { display: flex; }
+    .file-badge .fn { flex: 1; font-size: 12px; font-weight: 600; font-family: 'JetBrains Mono', monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .file-badge .fs { font-size: 11px; color: var(--muted); white-space: nowrap; }
+    .file-badge .ck { color: var(--green); font-size: 14px; }
+
+    /* ── Fields ── */
+    .field { margin-bottom: 14px; }
+    .field label {
+      display: block; font-size: 11px; font-weight: 600;
+      color: var(--muted); margin-bottom: 7px;
+      letter-spacing: .3px; text-transform: uppercase;
+    }
+    .field input[type="text"] {
+      width: 100%; background: var(--surface2);
+      border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 11px 13px; font-size: 14px; font-family: 'Inter', sans-serif;
+      font-weight: 500; color: var(--text); outline: none; transition: border-color .2s;
+    }
+    .field input[type="text"]:focus { border-color: var(--accent); }
+    .field input::placeholder { color: var(--muted); font-size: 13px; }
+
+    /* ── Color swatches ── */
+    .swatches { display: flex; gap: 7px; align-items: center; flex-wrap: wrap; }
+    .sw {
+      width: 28px; height: 28px; border-radius: 50%;
+      cursor: pointer; border: 2px solid transparent;
+      transition: all .15s; flex-shrink: 0;
+    }
+    .sw:hover { transform: scale(1.15); }
+    .sw.on { border-color: #fff; box-shadow: 0 0 0 3px rgba(255,255,255,.18); }
+    .sw-custom { display: flex; align-items: center; gap: 6px; }
+    .sw-custom input[type="color"] {
+      width: 28px; height: 28px; border: 2px solid var(--border);
+      border-radius: 50%; cursor: pointer; padding: 0; background: none; outline: none;
+    }
+    .sw-custom span { font-size: 11px; color: var(--muted); }
+
+    /* ── Style options ── */
+    .style-opts { display: flex; gap: 8px; }
+    .sopt {
+      flex: 1; padding: 10px 6px; background: var(--surface2);
+      border: 1px solid var(--border); border-radius: var(--radius);
+      cursor: pointer; text-align: center; transition: all .15s;
+    }
+    .sopt:hover { border-color: var(--accent); }
+    .sopt.on { border-color: var(--accent); background: rgba(124,106,255,.08); }
+    .sopt .si { font-size: 18px; display: block; margin-bottom: 3px; }
+    .sopt .sl { font-size: 11px; font-weight: 600; color: var(--muted); }
+    .sopt.on .sl { color: var(--accentlt); }
+
+    /* ── Generate button ── */
+    .btn-gen {
+      width: 100%; padding: 15px;
+      background: linear-gradient(135deg, var(--accent) 0%, #9b7dff 100%);
+      color: #fff; border: none; border-radius: var(--radius);
+      font-size: 15px; font-weight: 700; font-family: 'Inter', sans-serif;
+      cursor: pointer; transition: all .2s; margin-top: 4px;
+      letter-spacing: -.2px;
+    }
+    .btn-gen:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 28px rgba(124,106,255,.32);
+    }
+    .btn-gen:disabled { opacity: .38; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    /* ── Progress ── */
+    .prog { display: none; margin-top: 14px; }
+    .prog.show { display: block; }
+    .prog-track { height: 4px; background: var(--border); border-radius: 4px; overflow: hidden; margin-bottom: 8px; }
+    .prog-fill {
+      height: 100%; width: 0%;
+      background: linear-gradient(90deg, var(--accent), #c084fc);
+      border-radius: 4px; transition: width .4s ease;
+    }
+    .prog-txt { font-size: 12px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+
+    /* ── Alerts ── */
+    .alert { padding: 11px 13px; border-radius: var(--radius); font-size: 13px; line-height: 1.6; margin-bottom: 12px; }
+    .alert-err  { background: rgba(239,68,68,.08);   border: 1px solid rgba(239,68,68,.22);  color: rgba(252,165,165,.9); display: none; }
+    .alert-err.show { display: block; }
+
+    /* ── Result card ── */
+    .result {
+      display: none; background: var(--surface);
+      border: 1px solid rgba(124,106,255,.3);
+      border-radius: 14px; padding: 22px; margin-top: 12px; position: relative;
+    }
+    .result::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0;
+      height: 2px; border-radius: 14px 14px 0 0;
+      background: linear-gradient(90deg, var(--accent), #c084fc);
+    }
+    .result.show { display: block; }
+    .result-tag {
+      font-size: 10px; font-weight: 700; letter-spacing: 1.6px;
+      text-transform: uppercase; color: var(--accentlt);
+      margin-bottom: 14px; font-family: 'JetBrains Mono', monospace;
+    }
+    .url-wrap { display: flex; gap: 8px; margin-bottom: 18px; }
+    .url-box {
+      flex: 1; background: #0c0c0e; border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 11px 13px;
+      font-size: 13px; font-family: 'JetBrains Mono', monospace;
+      color: var(--accentlt); word-break: break-all; line-height: 1.5;
+    }
+    .btn-copy {
+      padding: 11px 16px; background: var(--surface2);
+      border: 1px solid var(--border); border-radius: var(--radius);
+      font-size: 13px; font-weight: 700; color: var(--text);
+      cursor: pointer; transition: all .2s; white-space: nowrap;
+      flex-shrink: 0; font-family: 'Inter', sans-serif;
+    }
+    .btn-copy:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .btn-copy.ok   { background: rgba(34,197,94,.12); color: var(--green); border-color: rgba(34,197,94,.3); }
+
+    /* ── Preview ── */
+    .prev-label { font-size: 11px; color: var(--muted); margin: 14px 0 8px; font-family: 'JetBrains Mono', monospace; }
+    .prev-frame {
+      background: repeating-conic-gradient(#1c1c20 0% 25%, #161618 0% 50%) 0 0 / 14px 14px;
+      border-radius: var(--radius); padding: 20px;
+      display: flex; align-items: center; justify-content: center;
+      border: 1px solid var(--border);
+    }
+    .prev-frame iframe { border: none; width: 360px; height: 80px; max-width: 100%; }
+
+    /* ── Canva tip ── */
+    .canva-tip {
+      margin-top: 14px; padding: 12px 14px;
+      background: rgba(124,106,255,.07);
+      border: 1px solid rgba(124,106,255,.2);
+      border-radius: var(--radius); font-size: 12px;
+      color: rgba(165,148,255,.85); line-height: 1.7;
+    }
+    .canva-tip strong { color: var(--accentlt); }
+
+    /* ── Steps ── */
+    .steps { margin-top: 40px; padding-top: 28px; border-top: 1px solid var(--border); }
+    .steps-hd { font-size: 10px; font-weight: 700; letter-spacing: 1.6px; text-transform: uppercase; color: var(--muted); margin-bottom: 16px; font-family: 'JetBrains Mono', monospace; }
+    .step { display: flex; gap: 12px; margin-bottom: 13px; }
+    .step-n { width: 24px; height: 24px; border-radius: 6px; background: var(--surface); border: 1px solid var(--border); display: grid; place-items: center; font-size: 11px; font-weight: 800; color: var(--accentlt); flex-shrink: 0; font-family: 'JetBrains Mono', monospace; }
+    .step h4 { font-size: 13px; font-weight: 700; margin-bottom: 2px; }
+    .step p  { font-size: 12px; color: var(--muted); line-height: 1.6; }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="logo-icon">
+      <svg width="17" height="17" viewBox="0 0 17 17" fill="none">
+        <rect x="1" y="9"  width="3" height="6"  rx="1.5" fill="#fff"/>
+        <rect x="6" y="5"  width="3" height="10" rx="1.5" fill="#fff"/>
+        <rect x="11" y="2" width="3" height="13" rx="1.5" fill="#fff"/>
+        <rect x="16" y="6" width="1.5" height="9" rx=".75" fill="#fff"/>
+      </svg>
+    </div>
+    <div class="logo-name">Sound<span>Embed</span></div>
+  </div>
+
+  <!-- Hero -->
+  <div class="hero">
+    <h1>MP3 → <em>Canva Widget</em></h1>
+    <p>Upload your audio, pick a style, get a permanent embeddable URL that works inside Canva.</p>
+  </div>
+
+  <!-- 01 Upload -->
+  <div class="card">
+    <div class="card-label">01 — Upload Audio</div>
+    <div class="drop" id="dropZone">
+      <input type="file" id="fileInput" accept=".mp3,.wav,.ogg,.m4a,audio/*" />
+      <span class="drop-icon">🎵</span>
+      <h3>Drop your audio file here</h3>
+      <p>Click to browse · MP3, WAV, M4A · Max 50 MB</p>
+    </div>
+    <div class="file-badge" id="fileBadge">
+      <span>🎧</span>
+      <span class="fn" id="fileName">—</span>
+      <span class="fs" id="fileSize">—</span>
+      <span class="ck">✓</span>
+    </div>
+  </div>
+
+  <!-- 02 Customize -->
+  <div class="card">
+    <div class="card-label">02 — Customize Player</div>
+
+    <div class="field">
+      <label>Track Title</label>
+      <input type="text" id="trackTitle" placeholder="My Podcast — Episode 1" maxlength="70" />
+    </div>
+
+    <div class="field">
+      <label>Button Color</label>
+      <div class="swatches">
+        <div class="sw on"  style="background:#ffffff"             data-c="#ffffff" onclick="pickColor(this)"></div>
+        <div class="sw"     style="background:#7c6aff"             data-c="#7c6aff" onclick="pickColor(this)"></div>
+        <div class="sw"     style="background:#22c55e"             data-c="#22c55e" onclick="pickColor(this)"></div>
+        <div class="sw"     style="background:#f97316"             data-c="#f97316" onclick="pickColor(this)"></div>
+        <div class="sw"     style="background:#ec4899"             data-c="#ec4899" onclick="pickColor(this)"></div>
+        <div class="sw"     style="background:#fbbf24"             data-c="#fbbf24" onclick="pickColor(this)"></div>
+        <div class="sw"     style="background:#38bdf8"             data-c="#38bdf8" onclick="pickColor(this)"></div>
+        <div class="sw"     style="background:#000;border:1px solid #555" data-c="#000000" onclick="pickColor(this)"></div>
+        <div class="sw-custom">
+          <input type="color" id="customClr" value="#ffffff" oninput="customColor(this)" />
+          <span>Custom</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Button Shape</label>
+      <div class="style-opts">
+        <div class="sopt on" data-s="circle" onclick="pickStyle(this)">
+          <span class="si">◉</span><span class="sl">Circle</span>
+        </div>
+        <div class="sopt" data-s="pill" onclick="pickStyle(this)">
+          <span class="si">⬭</span><span class="sl">Pill</span>
+        </div>
+        <div class="sopt" data-s="square" onclick="pickStyle(this)">
+          <span class="si">▣</span><span class="sl">Square</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Alerts + Progress -->
+  <div class="alert alert-err" id="errBox"></div>
+
+  <div class="prog" id="progBox">
+    <div class="prog-track"><div class="prog-fill" id="progFill"></div></div>
+    <div class="prog-txt"  id="progTxt">Preparing...</div>
+  </div>
+
+  <!-- Generate -->
+  <button class="btn-gen" id="genBtn" disabled>⚡ Generate Embed URL</button>
+
+  <!-- Result -->
+  <div class="result" id="resultCard">
+    <div class="result-tag">✦ Widget Ready</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">Paste this URL in Canva → Embed element:</div>
+    <div class="url-wrap">
+      <div class="url-box" id="resultUrl">—</div>
+      <button class="btn-copy" id="copyBtn" onclick="doCopy()">Copy</button>
+    </div>
+
+    <div class="prev-label">Preview (checkered pattern = transparent background):</div>
+    <div class="prev-frame">
+      <iframe id="prevIframe" src="" scrolling="no" allow="autoplay"></iframe>
+    </div>
+
+    <div class="canva-tip">
+      <strong>How to embed in Canva:</strong><br/>
+      Open Canva → Click <strong>Apps</strong> in left sidebar → Search <strong>"Embed"</strong> → Paste your URL → Done ✓
+    </div>
+  </div>
+
+  <!-- Steps -->
+  <div class="steps">
+    <div class="steps-hd">How It Works</div>
+    <div class="step"><div class="step-n">1</div><div><h4>Upload Audio</h4><p>Your file is read in the browser, then securely sent to Cloudinary via a serverless function.</p></div></div>
+    <div class="step"><div class="step-n">2</div><div><h4>Cloudinary Stores the Audio</h4><p>Audio lives on Cloudinary's CDN — fast, reliable, permanent. No expiry.</p></div></div>
+    <div class="step"><div class="step-n">3</div><div><h4>Player Page Deployed</h4><p>A lightweight player HTML page is instantly generated and served from Vercel using the Cloudinary audio URL.</p></div></div>
+    <div class="step"><div class="step-n">4</div><div><h4>Embed in Canva</h4><p>Paste the URL in Canva's Embed app. Only the play button shows — fully transparent background.</p></div></div>
+  </div>
+
+</div><!-- /page -->
+
+<script>
+  let selFile  = null;
+  let selColor = '#ffffff';
+  let selStyle = 'circle';
+  let finalUrl = '';
+
+  /* ── File handling ── */
+  const dropZone  = document.getElementById('dropZone');
+  const fileInput = document.getElementById('fileInput');
+
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('over'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('over'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault(); dropZone.classList.remove('over');
+    if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]);
+  });
+  fileInput.addEventListener('change', () => { if (fileInput.files[0]) setFile(fileInput.files[0]); });
+
+  function setFile(f) {
+    if (f.size > 52428800) { showErr('File too large — max 50 MB.'); return; }
+    selFile = f;
+    document.getElementById('fileName').textContent = f.name;
+    document.getElementById('fileSize').textContent = (f.size / 1048576).toFixed(2) + ' MB';
+    document.getElementById('fileBadge').classList.add('show');
+    document.getElementById('genBtn').disabled = false;
+    clearErr();
+  }
+
+  /* ── Color & style ── */
+  function pickColor(el) {
+    document.querySelectorAll('.sw').forEach(s => s.classList.remove('on'));
+    el.classList.add('on');
+    selColor = el.dataset.c;
+    document.getElementById('customClr').value = selColor;
+  }
+  function customColor(el) {
+    selColor = el.value;
+    document.querySelectorAll('.sw').forEach(s => s.classList.remove('on'));
+  }
+  function pickStyle(el) {
+    document.querySelectorAll('.sopt').forEach(s => s.classList.remove('on'));
+    el.classList.add('on');
+    selStyle = el.dataset.s;
+  }
+
+  /* ── Alerts & progress ── */
+  function showErr(msg) {
+    const b = document.getElementById('errBox');
+    b.innerHTML = '⚠️ ' + msg;
+    b.classList.add('show');
+  }
+  function clearErr() { document.getElementById('errBox').classList.remove('show'); }
+
+  function setProgress(pct, txt) {
+    document.getElementById('progBox').classList.add('show');
+    document.getElementById('progFill').style.width = pct + '%';
+    document.getElementById('progTxt').textContent = txt;
+  }
+  function hideProgress() { document.getElementById('progBox').classList.remove('show'); }
+
+  /* ── Main flow ── */
+  document.getElementById('genBtn').addEventListener('click', async () => {
+    if (!selFile) { showErr('Please select an audio file first.'); return; }
+    clearErr();
+
+    const btn = document.getElementById('genBtn');
+    btn.disabled = true;
+    btn.textContent = '⏳ Working...';
+
+    try {
+      /* Step 1 — read file as base64 */
+      setProgress(10, 'Reading audio file...');
+      const base64 = await readAsBase64(selFile);
+
+      /* Step 2 — upload to Cloudinary via serverless function */
+      setProgress(30, 'Uploading to Cloudinary...');
+      const uploadRes = await callFunction('/api/upload-audio', {
+        audioBase64: base64,
+        fileName: selFile.name,
+      });
+      if (uploadRes.error) throw new Error('Upload error: ' + uploadRes.error);
+
+      const audioUrl = uploadRes.audioUrl;
+
+      /* Step 3 — deploy player HTML via serverless function */
+      setProgress(65, 'Deploying player page...');
+      const title = document.getElementById('trackTitle').value.trim()
+        || selFile.name.replace(/\.[^.]+$/, '');
+
+      const deployRes = await callFunction('/api/deploy-player', {
+        audioUrl,
+        title,
+        color: selColor,
+        style: selStyle,
+      });
+      if (deployRes.error) throw new Error('Deploy error: ' + deployRes.error);
+
+      finalUrl = deployRes.playerUrl;
+
+      setProgress(100, 'Done!');
+      setTimeout(hideProgress, 1200);
+
+      /* Show result */
+      document.getElementById('resultUrl').textContent = finalUrl;
+      document.getElementById('prevIframe').src = finalUrl;
+      document.getElementById('resultCard').classList.add('show');
+      document.getElementById('resultCard').scrollIntoView({ behavior: 'smooth' });
+
+    } catch (err) {
+      showErr(err.message);
+      hideProgress();
+    }
+
+    btn.disabled = false;
+    btn.textContent = '⚡ Generate Embed URL';
+  });
+
+  /* ── Helpers ── */
+  function readAsBase64(file) {
+    return new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload  = e => res(e.target.result);
+      r.onerror = rej;
+      r.readAsDataURL(file);
+    });
+  }
+
+  async function callFunction(path, body) {
+    let res;
+    try {
+      res = await fetch(path, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(body),
+      });
+    } catch (e) {
+      throw new Error('Network error — check internet connection. ' + e.message);
+    }
+
+    const text = await res.text();
+
+    if (!text || text.trim() === '') {
+      throw new Error('Empty response from server (status ' + res.status + '). Function may not be deployed. Try re-deploying via GitHub.');
+    }
+
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (e) {
+      throw new Error('Server error (status ' + res.status + '): ' + text.slice(0, 200));
+    }
+
+    return data;
+  }
+
+  function doCopy() {
+    if (!finalUrl) return;
+    navigator.clipboard.writeText(finalUrl).then(() => {
+      const b = document.getElementById('copyBtn');
+      b.textContent = '✓ Copied!';
+      b.classList.add('ok');
+      setTimeout(() => { b.textContent = 'Copy'; b.classList.remove('ok'); }, 2500);
+    });
+  }
+</script>
+</body>
+</html>
